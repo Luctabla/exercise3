@@ -112,9 +112,8 @@ def posts():
     response = ""
     if request.method == "POST" and form.validate():
         id_post = form.id_post.data
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        response = loop.run_until_complete(post_handler.get_post(id_post))
+
+        response = asyncio.run(post_handler.get_post(id_post))
 
     return render_template("posts.html", post=response, form=form)
 
@@ -123,7 +122,5 @@ def posts():
 @is_logged_in
 def async_test():
     id_post = request.args.get("id_post")
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(post_handler.get_post(id_post))
+    response = asyncio.run(post_handler.get_post(id_post))
     return response
