@@ -3,21 +3,21 @@ import time
 import aiohttp
 import asyncio
 
-username = "Admin"
-password = "nullable=False"
-
 
 class Client(object):
-    async def fetch(self, url):
-        async with self.session.get(url) as response:
+    host = 'http://localhost:8000{}'
+    async def fetch(self, url, payload):
+        async with self.session.post(url, data=payload) as response:
             return await response.read()
 
-    async def run(self, r, sync_or_async):
-        url = "http://localhost:5000/{}?id_post={}"
+    async def run(self, r):
+        url = self.host.format("/members_only")
+        payload = {"id_post": "", "is_client": 'True'}
         tasks = []
 
         for i in range(r):
-            task = asyncio.create_task(self.fetch(url.format(sync_or_async, 1)))
+            payload['id_post'] = i
+            task = asyncio.create_task(self.fetch(url, payload))
             tasks.append(task)
 
         responses = await asyncio.gather(*tasks)
@@ -27,46 +27,39 @@ class Client(object):
 
     async def login(self):
         self.session = aiohttp.ClientSession()
-        payload = {"username": "Admin", "password": "nullable=False"}
-        response = await self.session.post("http://localhost:5000/login", data=payload)
-        print("Status:", response.status)
-        print("Content-type:", response.headers["content-type"])
+        payload = {"username": "lucas", "password": "12345"}
+        response = await self.session.post(self.host.format("/login"), data=payload)
 
-        html = await response.text()
-        print("Body:", html[:15], "...")
+    async def create_user(self):
+        self.session = aiohttp.ClientSession()
+        payload = {"name": "lucas", "email": "lucas@gmail.com", "username": "lucas", "password": "12345"}
+        response = await self.session.post(self.host.format("/register"), data=payload)
+        await self.session.close()
 
 
-def start_client(route, count_requests):
+
+
+def start_client(count_requests):
     start = time.time()
     client = Client()
     loop = asyncio.get_event_loop()
+    loop.run_until_complete(client.create_user())
     loop.run_until_complete(client.login())
 
-    loop.run_until_complete(client.run(count_requests, route))
+    loop.run_until_complete(client.run(count_requests))
     end = time.time()
-    print("Running in {} mode has taken: {} seconds.".format(route, end - start))
+    print("Running has taken: {} seconds.".format(end - start))
 
 
 if __name__ == "__main__":
-    SERVER_TYPE = {1: "sync", 2: "async", 3: "asgi_server"}
     correct_input = False
     while not correct_input:
         try:
-            server_type = int(
-                input(
-                    "Choose which type server would you do the requests:\n"
-                    "1 - sync\n"
-                    "2 - async with an wsgi server\n"
-                    "3 - async with an asgi server\n"
-                )
-            )
-            if server_type > 0 & server_type <= 3:
-                count_requests = int(input("Input how many request want to do"))
-                if count_requests > 0 and count_requests < 1000:
-                    route = SERVER_TYPE[server_type]
-                    correct_input = True
-                    start_client(route, count_requests)
-                    break
+            count_requests = int(input("Input how many request want to do"))
+            if count_requests > 0 and count_requests < 1000:
+                correct_input = True
+                start_client(count_requests)
+                break
 
         except KeyboardInterrupt:
             break

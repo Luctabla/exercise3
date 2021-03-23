@@ -98,29 +98,13 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/members_only")
+@app.route("/members_only", methods=["GET", "POST"])
 @is_logged_in
 def members_only():
-    form = PostForm(request.form)
-    return render_template("posts.html", form=form, post="")
-
-
-@app.route("/posts", methods=["GET", "POST"])
-@is_logged_in
-def posts():
     form = PostForm(request.form)
     response = ""
     if request.method == "POST" and form.validate():
         id_post = form.id_post.data
-
         response = asyncio.run(post_handler.get_post(id_post))
-
     return render_template("posts.html", post=response, form=form)
 
-
-@app.route("/async", methods=["GET", "POST"])
-@is_logged_in
-def async_test():
-    id_post = request.args.get("id_post")
-    response = asyncio.run(post_handler.get_post(id_post))
-    return response
